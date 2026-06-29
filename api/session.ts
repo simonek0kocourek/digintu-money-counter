@@ -2,7 +2,7 @@ import { Redis } from '@upstash/redis';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Initialize Redis client with automatic fallback for environment variables
-const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_URL;
+const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
 const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 const isRedisConfigured = !!url && !!token;
 
