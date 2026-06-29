@@ -120,19 +120,18 @@
   animation: emojiFall linear forwards;
 }
 
-/* Floating Current flow animation for the counter */
 @keyframes currentFlow {
   0% {
     transform: translate(0px, 0px) rotate(0deg);
   }
   25% {
-    transform: translate(4px, -6px) rotate(0.6deg);
+    transform: translate(14px, -20px) rotate(1.8deg);
   }
   50% {
-    transform: translate(-3px, 4px) rotate(-0.4deg);
+    transform: translate(-12px, 14px) rotate(-1.2deg);
   }
   75% {
-    transform: translate(5px, 3px) rotate(0.3deg);
+    transform: translate(18px, 10px) rotate(0.8deg);
   }
   100% {
     transform: translate(0px, 0px) rotate(0deg);
@@ -140,5 +139,5 @@
 }
 
 .animate-current-flow {
-  animation: currentFlow 10s ease-in-out infinite;
+  animation: currentFlow 9s ease-in-out infinite;
 }

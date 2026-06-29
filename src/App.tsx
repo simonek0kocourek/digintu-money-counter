@@ -322,6 +322,7 @@ export default function App() {
               coneSpread={25}
               animated={session.status === 'running'}
               colors={['#ffffff', '#a1a1aa', '#3f3f46']}
+              fillOpacity={0}
             >
               {session.status !== 'running' ? (
                 <Button 
@@ -355,6 +356,7 @@ export default function App() {
                 coneSpread={25}
                 animated={false}
                 colors={['#ffffff', '#a1a1aa', '#3f3f46']}
+                fillOpacity={0}
               >
                 <DialogTrigger asChild>
                   <Button 
@@ -412,7 +414,11 @@ export default function App() {
         </div>
 
         {/* LEADERBOARD & HISTORY */}
-        <section className="w-full max-w-2xl flex flex-col gap-6">
+        <section className={`w-full max-w-2xl flex flex-col gap-6 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          session.status === 'running' 
+            ? 'opacity-0 translate-y-24 pointer-events-none' 
+            : 'opacity-100 translate-y-0'
+        }`}>
           <div className="flex justify-between items-end border-b border-zinc-900 pb-3">
             <div className="flex items-center gap-2">
               <Award className="size-5 text-zinc-400" />
