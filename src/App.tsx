@@ -252,20 +252,14 @@ export default function App() {
       {/* Raining iOS Money Emojis */}
       <RainingEmojis active={session.status === 'running'} />
       
-      {/* HEADER SECTION (Persistent Stats on Top) */}
-      <header className="relative z-10 border-b border-zinc-900 bg-black/60 backdrop-blur-md px-6 py-4 sm:px-12 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="size-2 rounded-full bg-zinc-100 animate-pulse" />
-          <span className="font-mono text-xs tracking-[0.25em] text-zinc-400 uppercase">Chronos.Earn</span>
-        </div>
-        
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-mono">Total Earnings</span>
-          <span className="text-lg sm:text-2xl font-semibold tracking-tight text-white font-mono transition-all duration-300">
+      {/* FLOATING FROSTED GLASS HEADER BOX */}
+      <div className="relative z-10 px-4 pt-6 flex justify-center w-full">
+        <div className="backdrop-blur-md bg-black/45 border border-zinc-900/80 px-8 py-3 rounded-full flex items-center justify-center shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+          <span className="text-xl sm:text-2xl font-semibold tracking-tight text-white font-mono transition-all duration-300">
             {formatCurrency(totalEarningsAllTime)}
           </span>
         </div>
-      </header>
+      </div>
 
       {/* MAIN CONTAINER */}
       <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 py-8 md:py-16 flex flex-col items-center gap-12 md:gap-16 justify-center">
@@ -520,17 +514,8 @@ export default function App() {
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 border-t border-zinc-900/80 px-6 py-6 sm:px-12 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left bg-black/45">
-        <p className="text-[11px] font-mono text-zinc-600 tracking-wider">
-          © {new Date().getFullYear()} CHRONOS. ALL RIGHTS RESERVED.
-        </p>
-        <p className="text-[10px] font-mono text-zinc-600 tracking-wider flex items-center gap-2">
-          <span>DESIGNED FOR WORK</span>
-          <span className="text-zinc-800">•</span>
-          <span>1000 KČ / HR STANDARD RATE</span>
-        </p>
-      </footer>
+      {/* Spacer to give bottom spacing */}
+      <div className="pb-8" />
     </div>
   );
 }
