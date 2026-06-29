@@ -461,21 +461,21 @@ export default function App() {
               fillOpacity={0}
             >
               {session.status !== 'running' ? (
-                <Button 
+                <button 
                   onClick={handleStartResume}
-                  className="w-full bg-transparent text-black hover:bg-zinc-200/10 transition-all font-medium py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit]"
+                  className="w-full bg-transparent text-black transition-all font-medium py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit] outline-none select-none"
                 >
                   <Play className="size-4 fill-current" />
                   {session.status === 'paused' ? 'Resume' : 'Start Cycle'}
-                </Button>
+                </button>
               ) : (
-                <Button 
+                <button 
                   onClick={handlePause}
-                  className="w-full bg-transparent text-zinc-300 hover:text-white hover:bg-zinc-900/10 transition-all py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit]"
+                  className="w-full bg-transparent text-zinc-300 hover:text-white transition-all py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit] outline-none select-none"
                 >
                   <Pause className="size-4 fill-current" />
                   Pause
-                </Button>
+                </button>
               )}
             </BorderGlow>
 
@@ -495,13 +495,13 @@ export default function App() {
                 fillOpacity={0}
               >
                 <DialogTrigger asChild>
-                  <Button 
+                  <button 
                     disabled={elapsedTime <= 0}
-                    className="w-full bg-transparent text-zinc-400 hover:text-zinc-200 transition-all py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit] disabled:pointer-events-none"
+                    className="w-full bg-transparent text-zinc-400 hover:text-zinc-200 transition-all py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit] disabled:pointer-events-none outline-none select-none"
                   >
                     <Square className="size-4" />
                     End Day
-                  </Button>
+                  </button>
                 </DialogTrigger>
               </BorderGlow>
 
