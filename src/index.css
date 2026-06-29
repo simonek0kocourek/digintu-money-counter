@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  /* Luxury Font Family */
+  --font-serif: "Cinzel", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Custom Luxury Monochrome Theme Colors */
+  --color-background: #030303;
+  --color-foreground: #f4f4f5;
+  
+  --color-card: #060607;
+  --color-card-foreground: #f4f4f5;
+  
+  --color-popover: #060607;
+  --color-popover-foreground: #f4f4f5;
+  
+  --color-primary: #ffffff;
+  --color-primary-foreground: #000000;
+  
+  --color-secondary: #161616;
+  --color-secondary-foreground: #f4f4f5;
+  
+  --color-muted: #111112;
+  --color-muted-foreground: #71717a;
+  
+  --color-accent: #1c1c1e;
+  --color-accent-foreground: #f4f4f5;
+  
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #f4f4f5;
+  
+  --color-border: #18181b;
+  --color-input: #18181b;
+  --color-ring: #ffffff;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Micro-animations & Luxury Styling */
+@keyframes luxuryPulse {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.015);
+  }
+}
+
+.animate-pulse-luxury {
+  animation: luxuryPulse 3s ease-in-out infinite;
+}
+
+/* Custom scrollbar for premium feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030303;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #18181b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #27272a;
+}
