@@ -8,7 +8,6 @@ import {
   Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { db } from './lib/db';
 import type { StopwatchSession, WorkDay } from './lib/db';
 import { Button } from './components/ui/button';
 import { Card, CardContent } from './components/ui/card';
@@ -33,13 +32,72 @@ const RATE_PER_MS = HOURLY_RATE / MS_PER_HOUR;
 
 export default function App() {
   // Load initial session and history
-  const [session, setSession] = useState<StopwatchSession>(() => db.getStopwatchSession());
-  const [history, setHistory] = useState<WorkDay[]>(() => db.getWorkDays());
+  const [session, setSession] = useState<StopwatchSession>({
+    status: 'idle',
+    startTime: null,
+    accumulatedTime: 0,
+    dateStarted: null,
+  });
+  const [history, setHistory] = useState<WorkDay[]>([]);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   
   const animationRef = useRef<number | null>(null);
+
+  // Load database state on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [sessionRes, historyRes] = await Promise.all([
+          fetch('/api/session'),
+          fetch('/api/history')
+        ]);
+        
+        const sessionData = await sessionRes.json();
+        const historyData = await historyRes.json();
+        
+        setSession(sessionData);
+        setHistory(Array.isArray(historyData) ? historyData : JSON.parse(historyData));
+      } catch (err) {
+        console.error('Failed to load database values:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+
+  // Poll session state from DB every 6 seconds to keep multiple devices in sync
+  useEffect(() => {
+    if (loading) return;
+
+    const pollInterval = setInterval(async () => {
+      // Save Vercel KV bandwidth by only polling when tab is active
+      if (document.hidden) return;
+      
+      try {
+        const res = await fetch('/api/session');
+        const latestSession = await res.json();
+        
+        // Only update state if session changed on another device
+        if (
+          latestSession.status !== session.status ||
+          latestSession.startTime !== session.startTime ||
+          latestSession.accumulatedTime !== session.accumulatedTime
+        ) {
+          setSession(latestSession);
+        }
+      } catch (err) {
+        console.warn('Sync polling failed:', err);
+      }
+    }, 6000);
+    
+    return () => clearInterval(pollInterval);
+  }, [session, loading]);
 
   // Synchronize elapsed time on session change
   useEffect(() => {
@@ -96,7 +154,7 @@ export default function App() {
   }, [history]);
 
   // Action: Start or Resume Stopwatch
-  const handleStartResume = () => {
+  const handleStartResume = async () => {
     const now = Date.now();
     const todayStr = new Date().toISOString().split('T')[0];
     
@@ -108,11 +166,24 @@ export default function App() {
     };
 
     setSession(updatedSession);
-    db.saveStopwatchSession(updatedSession);
+    
+    // Save to Upstash Redis
+    setSyncing(true);
+    try {
+      await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSession),
+      });
+    } catch (e) {
+      console.error('Failed to sync start session:', e);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // Action: Pause Stopwatch
-  const handlePause = () => {
+  const handlePause = async () => {
     if (session.status !== 'running' || !session.startTime) return;
     
     const now = Date.now();
@@ -125,32 +196,72 @@ export default function App() {
     };
 
     setSession(updatedSession);
-    db.saveStopwatchSession(updatedSession);
+
+    // Save to Upstash Redis
+    setSyncing(true);
+    try {
+      await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSession),
+      });
+    } catch (e) {
+      console.error('Failed to sync pause session:', e);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // Action: End Day (Save to DB, reset stopwatch)
-  const handleEndDay = () => {
+  const handleEndDay = async () => {
     if (elapsedTime <= 0) return;
 
     const hoursWorked = elapsedTime / MS_PER_HOUR;
     const earnedAmount = Math.round(currentEarnings); // round to full Crowns for clean history
     const dateToSave = session.dateStarted || new Date().toISOString().split('T')[0];
 
-    db.saveWorkDay({
-      date: dateToSave,
-      hours: parseFloat(hoursWorked.toFixed(2)),
-      earned: earnedAmount,
-    });
+    const resetSession: StopwatchSession = {
+      status: 'idle',
+      startTime: null,
+      accumulatedTime: 0,
+      dateStarted: null,
+    };
 
-    // Reset session in state & DB
-    db.clearStopwatchSession();
-    setSession(db.getStopwatchSession());
-    setElapsedTime(0);
-    setHistory(db.getWorkDays());
-    setIsConfirmOpen(false);
+    setSyncing(true);
+    try {
+      // 1. Reset stopwatch session on backend
+      const sessionPromise = fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resetSession),
+      });
 
-    // Trigger Luxury completion celebration
-    triggerLuxuryConfetti();
+      // 2. Save completed day to history
+      const historyPromise = fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: dateToSave,
+          hours: parseFloat(hoursWorked.toFixed(2)),
+          earned: earnedAmount,
+        }),
+      });
+
+      const [, historyRes] = await Promise.all([sessionPromise, historyPromise]);
+      const updatedHistory = await historyRes.json();
+
+      setSession(resetSession);
+      setElapsedTime(0);
+      setHistory(Array.isArray(updatedHistory) ? updatedHistory : JSON.parse(updatedHistory));
+      setIsConfirmOpen(false);
+
+      // Trigger completion celebration
+      triggerLuxuryConfetti();
+    } catch (e) {
+      console.error('Failed to save completed workday:', e);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // Trigger Confetti
@@ -159,7 +270,7 @@ export default function App() {
     const end = Date.now() + duration;
 
     const frame = () => {
-      // Elegant minimal monochrome confetti (white, silver, gold-ish luxury sparkles)
+      // Elegant minimal monochrome confetti
       confetti({
         particleCount: 3,
         angle: 60,
@@ -183,10 +294,32 @@ export default function App() {
   };
 
   // Action: Clear All Leaderboard History
-  const handleClearHistory = () => {
-    localStorage.removeItem('digintu_work_days_history');
-    setHistory([]);
-    setIsResetConfirmOpen(false);
+  const handleClearHistory = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/history', { method: 'DELETE' });
+      const updatedHistory = await res.json();
+      setHistory(updatedHistory);
+      setIsResetConfirmOpen(false);
+    } catch (e) {
+      console.error('Failed to clear database history:', e);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Action: Delete Individual Leaderboard Entry
+  const handleDeleteDay = async (id: string) => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`/api/history?id=${id}`, { method: 'DELETE' });
+      const updatedHistory = await res.json();
+      setHistory(updatedHistory);
+    } catch (e) {
+      console.error('Failed to delete history row:', e);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // Format date for display
@@ -254,10 +387,13 @@ export default function App() {
       
       {/* FLOATING FROSTED GLASS HEADER BOX */}
       <div className="relative z-10 px-4 pt-6 flex justify-center w-full">
-        <div className="backdrop-blur-md bg-black/45 border border-zinc-900/80 px-8 py-3 rounded-full flex items-center justify-center shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+        <div className="backdrop-blur-md bg-black/45 border border-zinc-900/80 px-8 py-3 rounded-full flex items-center gap-3 justify-center shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
           <span className="text-xl sm:text-2xl font-semibold tracking-tight text-white font-mono transition-all duration-300">
             {formatCurrency(totalEarningsAllTime)}
           </span>
+          {syncing && (
+            <span className="size-1.5 rounded-full bg-white/70 animate-ping" title="Syncing with database..." />
+          )}
         </div>
       </div>
 
@@ -318,7 +454,7 @@ export default function App() {
               backgroundColor={session.status !== 'running' ? '#ffffff' : '#060607'}
               borderRadius={12}
               glowRadius={40}
-              glowIntensity={1}
+              glowIntensity={0}
               coneSpread={25}
               animated={session.status === 'running'}
               colors={['#ffffff', '#a1a1aa', '#3f3f46']}
@@ -352,7 +488,7 @@ export default function App() {
                 backgroundColor="#060607"
                 borderRadius={12}
                 glowRadius={40}
-                glowIntensity={1}
+                glowIntensity={0}
                 coneSpread={25}
                 animated={false}
                 colors={['#ffffff', '#a1a1aa', '#3f3f46']}
@@ -503,7 +639,7 @@ export default function App() {
                           
                           {/* Option to delete individual row on hover */}
                           <button 
-                            onClick={() => { db.deleteWorkDay(day.id); setHistory(db.getWorkDays()); }}
+                            onClick={() => handleDeleteDay(day.id)}
                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-zinc-600 hover:text-red-400 cursor-pointer"
                             title="Delete entry"
                           >
