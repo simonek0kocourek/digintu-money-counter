@@ -9,10 +9,16 @@ interface WorkDay {
 }
 
 // Initialize Redis client
+const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+const isRedisConfigured = !!url && !!token;
+
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '',
+  url: url || '',
+  token: token || '',
 });
+
+let mockHistory: WorkDay[] = [];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS Headers
@@ -22,6 +28,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Fallback to in-memory history if database variables are not configured yet
+  if (!isRedisConfigured) {
+    console.warn('Upstash Redis URL/Token is not configured. Falling back to memory.');
+    if (req.method === 'GET') {
+      return res.status(200).json(mockHistory);
+    } else if (req.method === 'POST') {
+      const { date, hours, earned } = req.body;
+      const newDay: WorkDay = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        date,
+        hours,
+        earned,
+      };
+      mockHistory.push(newDay);
+      return res.status(200).json(mockHistory);
+    } else if (req.method === 'DELETE') {
+      const { id } = req.query;
+      if (id && typeof id === 'string') {
+        mockHistory = mockHistory.filter((day) => day.id !== id);
+      } else {
+        mockHistory = [];
+      }
+      return res.status(200).json(mockHistory);
+    }
+    return res.status(405).end();
   }
 
   const HISTORY_KEY = 'digintu_work_days_history';

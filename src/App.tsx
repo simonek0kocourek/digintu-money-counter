@@ -8,6 +8,7 @@ import {
   Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { db } from './lib/db';
 import type { StopwatchSession, WorkDay } from './lib/db';
 import { Button } from './components/ui/button';
 import { Card, CardContent } from './components/ui/card';
@@ -56,13 +57,26 @@ export default function App() {
           fetch('/api/history')
         ]);
         
+        if (!sessionRes.ok || !historyRes.ok) {
+          throw new Error('API returned error status');
+        }
+        
         const sessionData = await sessionRes.json();
         const historyData = await historyRes.json();
+        
+        if (sessionData.error || historyData.error) {
+          throw new Error(sessionData.error || historyData.error);
+        }
         
         setSession(sessionData);
         setHistory(Array.isArray(historyData) ? historyData : JSON.parse(historyData));
       } catch (err) {
-        console.error('Failed to load database values:', err);
+        console.warn('Failed to load database values, falling back to LocalStorage:', err);
+        // Fallback to LocalStorage
+        const localSess = db.getStopwatchSession();
+        const localHist = db.getWorkDays();
+        setSession(localSess);
+        setHistory(localHist);
       } finally {
         setLoading(false);
       }
@@ -81,15 +95,18 @@ export default function App() {
       
       try {
         const res = await fetch('/api/session');
+        if (!res.ok) throw new Error();
         const latestSession = await res.json();
         
-        // Only update state if session changed on another device
-        if (
-          latestSession.status !== session.status ||
-          latestSession.startTime !== session.startTime ||
-          latestSession.accumulatedTime !== session.accumulatedTime
-        ) {
-          setSession(latestSession);
+        if (latestSession && !latestSession.error) {
+          // Only update state if session changed on another device
+          if (
+            latestSession.status !== session.status ||
+            latestSession.startTime !== session.startTime ||
+            latestSession.accumulatedTime !== session.accumulatedTime
+          ) {
+            setSession(latestSession);
+          }
         }
       } catch (err) {
         console.warn('Sync polling failed:', err);
@@ -166,17 +183,19 @@ export default function App() {
     };
 
     setSession(updatedSession);
+    db.saveStopwatchSession(updatedSession); // Save locally first
     
-    // Save to Upstash Redis
+    // Save to Upstash Redis asynchronously
     setSyncing(true);
     try {
-      await fetch('/api/session', {
+      const res = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedSession),
       });
+      if (!res.ok) throw new Error('Failed to update session on server');
     } catch (e) {
-      console.error('Failed to sync start session:', e);
+      console.warn('Failed to sync start session with cloud, saved locally:', e);
     } finally {
       setSyncing(false);
     }
@@ -196,17 +215,19 @@ export default function App() {
     };
 
     setSession(updatedSession);
+    db.saveStopwatchSession(updatedSession); // Save locally first
 
-    // Save to Upstash Redis
+    // Save to Upstash Redis asynchronously
     setSyncing(true);
     try {
-      await fetch('/api/session', {
+      const res = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedSession),
       });
+      if (!res.ok) throw new Error('Failed to update session on server');
     } catch (e) {
-      console.error('Failed to sync pause session:', e);
+      console.warn('Failed to sync pause session with cloud, saved locally:', e);
     } finally {
       setSyncing(false);
     }
@@ -227,6 +248,26 @@ export default function App() {
       dateStarted: null,
     };
 
+    // Update UI immediately (Local First design)
+    setSession(resetSession);
+    setElapsedTime(0);
+    
+    // Save to LocalStorage immediately
+    db.saveWorkDay({
+      date: dateToSave,
+      hours: parseFloat(hoursWorked.toFixed(2)),
+      earned: earnedAmount,
+    });
+    db.clearStopwatchSession();
+    
+    const localHistory = db.getWorkDays();
+    setHistory(localHistory);
+    setIsConfirmOpen(false);
+    
+    // Trigger completion celebration
+    triggerLuxuryConfetti();
+
+    // Sync to Upstash Redis in background
     setSyncing(true);
     try {
       // 1. Reset stopwatch session on backend
@@ -248,17 +289,14 @@ export default function App() {
       });
 
       const [, historyRes] = await Promise.all([sessionPromise, historyPromise]);
+      if (!historyRes.ok) throw new Error('Failed to save history on server');
+      
       const updatedHistory = await historyRes.json();
-
-      setSession(resetSession);
-      setElapsedTime(0);
-      setHistory(Array.isArray(updatedHistory) ? updatedHistory : JSON.parse(updatedHistory));
-      setIsConfirmOpen(false);
-
-      // Trigger completion celebration
-      triggerLuxuryConfetti();
+      if (updatedHistory && !updatedHistory.error) {
+        setHistory(Array.isArray(updatedHistory) ? updatedHistory : JSON.parse(updatedHistory));
+      }
     } catch (e) {
-      console.error('Failed to save completed workday:', e);
+      console.warn('Failed to sync workday to cloud, saved locally:', e);
     } finally {
       setSyncing(false);
     }
@@ -295,14 +333,22 @@ export default function App() {
 
   // Action: Clear All Leaderboard History
   const handleClearHistory = async () => {
+    // Clear locally first
+    localStorage.removeItem('digintu_work_days_history');
+    setHistory([]);
+    setIsResetConfirmOpen(false);
+
+    // Sync in background
     setSyncing(true);
     try {
       const res = await fetch('/api/history', { method: 'DELETE' });
+      if (!res.ok) throw new Error();
       const updatedHistory = await res.json();
-      setHistory(updatedHistory);
-      setIsResetConfirmOpen(false);
+      if (updatedHistory && !updatedHistory.error) {
+        setHistory(updatedHistory);
+      }
     } catch (e) {
-      console.error('Failed to clear database history:', e);
+      console.warn('Failed to sync clear history to cloud, cleared locally:', e);
     } finally {
       setSyncing(false);
     }
@@ -310,13 +356,21 @@ export default function App() {
 
   // Action: Delete Individual Leaderboard Entry
   const handleDeleteDay = async (id: string) => {
+    // Delete locally first
+    db.deleteWorkDay(id);
+    setHistory(db.getWorkDays());
+
+    // Sync in background
     setSyncing(true);
     try {
       const res = await fetch(`/api/history?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
       const updatedHistory = await res.json();
-      setHistory(updatedHistory);
+      if (updatedHistory && !updatedHistory.error) {
+        setHistory(updatedHistory);
+      }
     } catch (e) {
-      console.error('Failed to delete history row:', e);
+      console.warn('Failed to sync delete row to cloud, deleted locally:', e);
     } finally {
       setSyncing(false);
     }
