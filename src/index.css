@@ -105,3 +105,40 @@
 .animate-money-flow {
   animation: moneyFlow var(--flow-duration, 3.5s) ease-in-out infinite;
 }
+
+/* Falling Emoji Animation */
+@keyframes emojiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(115vh) rotate(calc(var(--spin-dir, 1) * 360deg));
+  }
+}
+
+.animate-emoji-fall {
+  animation: emojiFall linear forwards;
+}
+
+/* Floating Current flow animation for the counter */
+@keyframes currentFlow {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  25% {
+    transform: translate(4px, -6px) rotate(0.6deg);
+  }
+  50% {
+    transform: translate(-3px, 4px) rotate(-0.4deg);
+  }
+  75% {
+    transform: translate(5px, 3px) rotate(0.3deg);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+}
+
+.animate-current-flow {
+  animation: currentFlow 10s ease-in-out infinite;
+}

@@ -22,6 +22,9 @@ import {
   DialogTrigger,
   DialogClose,
 } from './components/ui/dialog';
+import BorderGlow from './components/BorderGlow';
+import DotField from './components/DotField';
+import RainingEmojis from './components/RainingEmojis';
 
 // Rate constant: 1000 Kč per hour
 const HOURLY_RATE = 1000;
@@ -74,7 +77,6 @@ export default function App() {
   };
 
   const formattedTime = formatTime(elapsedTime);
-  const secondsRotation = (elapsedTime % 60000) * (360 / 60000);
 
   // Calculate current session earnings
   const currentEarnings = useMemo(() => {
@@ -229,9 +231,26 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-[#030303] text-zinc-100 flex flex-col justify-between selection:bg-zinc-800 selection:text-white font-sans antialiased overflow-hidden">
-      {/* Luxury Background elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(25,25,25,0.4)_0%,rgba(0,0,0,0.85)_100%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
+      {/* ReactBits DotField Background */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
+        <DotField
+          dotRadius={1.5}
+          dotSpacing={14}
+          bulgeStrength={67}
+          glowRadius={160}
+          sparkle={false}
+          waveAmplitude={0}
+          cursorRadius={500}
+          cursorForce={0.1}
+          bulgeOnly
+          gradientFrom="#A855F7"
+          gradientTo="#B497CF"
+          glowColor="#030303"
+        />
+      </div>
+
+      {/* Raining iOS Money Emojis */}
+      <RainingEmojis active={session.status === 'running'} />
       
       {/* HEADER SECTION (Persistent Stats on Top) */}
       <header className="relative z-10 border-b border-zinc-900 bg-black/60 backdrop-blur-md px-6 py-4 sm:px-12 flex justify-between items-center">
@@ -251,151 +270,109 @@ export default function App() {
       {/* MAIN CONTAINER */}
       <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 py-8 md:py-16 flex flex-col items-center gap-12 md:gap-16 justify-center">
         
-        {/* CHRONOMETER / STOPWATCH FACE */}
+        {/* CENTER NUMBER CONTAINER */}
         <div className="flex flex-col items-center gap-8 w-full max-w-md">
-          <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-full flex items-center justify-center border border-zinc-800 bg-[#060606] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+          <div className={`flex flex-col items-center text-center py-10 selection:bg-zinc-800 select-none ${session.status === 'running' ? 'animate-current-flow' : ''}`}>
             
-            {/* Rotating border when active (pauses in place on pause) */}
-            <div 
-              className="absolute inset-1 rounded-full border border-dashed border-zinc-700/50 pointer-events-none animate-[spin_40s_linear_infinite]"
-              style={{
-                animationPlayState: session.status === 'running' ? 'running' : 'paused'
-              }}
-            />
-            
-            {/* Money flow particles container */}
-            <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none z-0">
+            {/* Rate tag */}
+            <div className="mb-4 px-3 py-1 rounded-full border border-zinc-900 bg-zinc-950/40 text-[10px] tracking-[0.25em] uppercase font-mono text-zinc-500">
+              {HOURLY_RATE} Kč / Hod
+            </div>
+
+            {/* Real-time Earnings display */}
+            <div className="text-5xl sm:text-6xl font-light font-mono text-white tracking-tight leading-none mb-3 select-none filter drop-shadow-[0_0_15px_rgba(255,255,255,0.06)]">
+              {formatCurrency(currentEarnings)}
+            </div>
+
+            {/* Small status line */}
+            <div className="h-5 flex items-center justify-center gap-1.5 mb-6">
               {session.status === 'running' && (
                 <>
-                  <div className="absolute left-[25%] bottom-[30%] text-[8px] font-mono text-zinc-500/20 select-none animate-money-flow" style={{ '--flow-x': '-15px', '--flow-duration': '3.2s', 'animationDelay': '0.1s' } as React.CSSProperties}>Kč</div>
-                  <div className="absolute left-[75%] bottom-[25%] text-[9px] font-mono text-zinc-500/20 select-none animate-money-flow" style={{ '--flow-x': '12px', '--flow-duration': '4s', 'animationDelay': '0.8s' } as React.CSSProperties}>Kč</div>
-                  <div className="absolute left-[40%] bottom-[20%] text-[7px] font-mono text-zinc-500/25 select-none animate-money-flow" style={{ '--flow-x': '-8px', '--flow-duration': '2.8s', 'animationDelay': '1.5s' } as React.CSSProperties}>Kč</div>
-                  <div className="absolute left-[60%] bottom-[35%] text-[8px] font-mono text-zinc-500/20 select-none animate-money-flow" style={{ '--flow-x': '20px', '--flow-duration': '3.5s', 'animationDelay': '2.2s' } as React.CSSProperties}>Kč</div>
-                  
-                  {/* Floating micro-sparks/dots */}
-                  <div className="absolute left-[35%] bottom-[22%] size-1 bg-white/40 rounded-full animate-money-flow shadow-[0_0_4px_rgba(255,255,255,0.4)]" style={{ '--flow-x': '10px', '--flow-duration': '3.6s', 'animationDelay': '0.4s' } as React.CSSProperties} />
-                  <div className="absolute left-[65%] bottom-[28%] size-0.5 bg-white/30 rounded-full animate-money-flow" style={{ '--flow-x': '-12px', '--flow-duration': '4.2s', 'animationDelay': '1.2s' } as React.CSSProperties} />
-                  <div className="absolute left-[50%] bottom-[15%] size-1 bg-white/50 rounded-full animate-money-flow shadow-[0_0_6px_rgba(255,255,255,0.5)]" style={{ '--flow-x': '4px', '--flow-duration': '3s', 'animationDelay': '2.0s' } as React.CSSProperties} />
-                  <div className="absolute left-[45%] bottom-[32%] size-0.5 bg-white/30 rounded-full animate-money-flow" style={{ '--flow-x': '-6px', '--flow-duration': '3.8s', 'animationDelay': '2.6s' } as React.CSSProperties} />
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="text-[10px] tracking-wider uppercase font-mono text-emerald-500/90 font-medium">Active</span>
                 </>
+              )}
+              {session.status === 'paused' && (
+                <>
+                  <span className="size-1.5 rounded-full bg-amber-500" />
+                  <span className="text-[10px] tracking-wider uppercase font-mono text-amber-500/90 font-medium">Paused</span>
+                </>
+              )}
+              {session.status === 'idle' && (
+                <span className="text-[10px] tracking-wider uppercase font-mono text-zinc-600 font-medium">Standby</span>
               )}
             </div>
 
-            {/* Sweeping mechanical second hand */}
-            {session.status !== 'idle' && (
-              <div 
-                className="absolute z-10 w-[1px] h-[38%] bg-white/45 origin-bottom transition-transform duration-75 pointer-events-none"
-                style={{
-                  bottom: '50%',
-                  left: '50%',
-                  transform: `translateX(-50%) rotate(${secondsRotation}deg)`,
-                }}
-              />
-            )}
-            {/* Center cap pin for watch hands */}
-            {session.status !== 'idle' && (
-              <div className="absolute z-20 size-2 bg-white rounded-full border border-zinc-950 shadow-md pointer-events-none" />
-            )}
-            
-            {/* Thin active glow ring */}
-            <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none">
-              <circle
-                cx="50%"
-                cy="50%"
-                r="48%"
-                className={`stroke-zinc-800 fill-none stroke-[1px]`}
-              />
-              <circle
-                cx="50%"
-                cy="50%"
-                r="48%"
-                className={`stroke-white fill-none stroke-[2px] transition-all duration-300 ${session.status === 'running' ? 'opacity-100 animate-[pulse_2s_ease-in-out_infinite]' : 'opacity-0'}`}
-                strokeDasharray="40 180 80 40"
-              />
-            </svg>
-
-            {/* Inner Details */}
-            <div className="flex flex-col items-center text-center z-10 px-6">
-              {/* Rate tag */}
-              <div className="mb-2 px-2.5 py-0.5 rounded-full border border-zinc-800 bg-zinc-900/50 text-[10px] tracking-widest uppercase font-mono text-zinc-500">
-                {HOURLY_RATE} Kč / Hod
-              </div>
-
-              {/* Real-time Earnings display */}
-              <div className="text-3xl sm:text-4xl font-light font-mono text-white tracking-tight leading-none mb-1">
-                {formatCurrency(currentEarnings)}
-              </div>
-
-              {/* Small status line */}
-              <div className="h-4 flex items-center justify-center gap-1.5 mb-5">
-                {session.status === 'running' && (
-                  <>
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="text-[10px] tracking-wider uppercase font-mono text-emerald-500/80">Active</span>
-                  </>
-                )}
-                {session.status === 'paused' && (
-                  <>
-                    <span className="size-1.5 rounded-full bg-amber-500" />
-                    <span className="text-[10px] tracking-wider uppercase font-mono text-amber-500/80">Paused</span>
-                  </>
-                )}
-                {session.status === 'idle' && (
-                  <span className="text-[10px] tracking-wider uppercase font-mono text-zinc-600">Standby</span>
-                )}
-              </div>
-
-              {/* Stopwatch numbers */}
-              <div className="flex items-baseline font-mono text-xl text-zinc-400 select-none">
-                <span>{formattedTime.hours}</span>
-                <span className="mx-1 text-zinc-600 animate-pulse">:</span>
-                <span>{formattedTime.minutes}</span>
-                <span className="mx-1 text-zinc-600 animate-pulse">:</span>
-                <span>{formattedTime.seconds}</span>
-                <span className="ml-1 text-sm text-zinc-600">.{formattedTime.hundredths}</span>
-              </div>
+            {/* Stopwatch numbers */}
+            <div className="flex items-baseline font-mono text-2xl text-zinc-400 select-none">
+              <span>{formattedTime.hours}</span>
+              <span className="mx-1.5 text-zinc-700 animate-pulse">:</span>
+              <span>{formattedTime.minutes}</span>
+              <span className="mx-1.5 text-zinc-700 animate-pulse">:</span>
+              <span>{formattedTime.seconds}</span>
+              <span className="ml-1.5 text-base text-zinc-600">.{formattedTime.hundredths}</span>
             </div>
-            
-            {/* Subtle markings on the clock */}
-            <div className="absolute top-3 font-mono text-[9px] text-zinc-700 tracking-wider">60</div>
-            <div className="absolute bottom-3 font-mono text-[9px] text-zinc-700 tracking-wider">30</div>
-            <div className="absolute left-3 font-mono text-[9px] text-zinc-700 tracking-wider">45</div>
-            <div className="absolute right-3 font-mono text-[9px] text-zinc-700 tracking-wider">15</div>
           </div>
 
           {/* CONTROLS */}
-          <div className="flex gap-3 w-full justify-center">
-            {session.status !== 'running' ? (
-              <Button 
-                onClick={handleStartResume}
-                className="flex-1 bg-white text-black hover:bg-zinc-200 transition-all font-medium py-6 px-6 text-sm tracking-wider uppercase rounded-xl border border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Play className="size-4 fill-current" />
-                {session.status === 'paused' ? 'Resume' : 'Start Cycle'}
-              </Button>
-            ) : (
-              <Button 
-                onClick={handlePause}
-                variant="outline"
-                className="flex-1 border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-900/50 transition-all py-6 px-6 text-sm tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Pause className="size-4 fill-current" />
-                Pause
-              </Button>
-            )}
-
-            {/* End Day triggers confirmation modal */}
-            <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-              <DialogTrigger asChild>
+          <div className="flex gap-3 w-full justify-center relative z-10">
+            {/* Start / Resume / Pause button wrapped in BorderGlow */}
+            <BorderGlow
+              className="flex-1"
+              edgeSensitivity={30}
+              glowColor="0 0 100"
+              backgroundColor={session.status !== 'running' ? '#ffffff' : '#060607'}
+              borderRadius={12}
+              glowRadius={40}
+              glowIntensity={1}
+              coneSpread={25}
+              animated={session.status === 'running'}
+              colors={['#ffffff', '#a1a1aa', '#3f3f46']}
+            >
+              {session.status !== 'running' ? (
                 <Button 
-                  disabled={elapsedTime <= 0}
-                  variant="outline"
-                  className="flex-1 border-zinc-900 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 hover:bg-zinc-950 transition-all py-6 px-6 text-sm tracking-wider uppercase rounded-xl disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={handleStartResume}
+                  className="w-full bg-transparent text-black hover:bg-zinc-200/10 transition-all font-medium py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit]"
                 >
-                  <Square className="size-4" />
-                  End Day
+                  <Play className="size-4 fill-current" />
+                  {session.status === 'paused' ? 'Resume' : 'Start Cycle'}
                 </Button>
-              </DialogTrigger>
+              ) : (
+                <Button 
+                  onClick={handlePause}
+                  className="w-full bg-transparent text-zinc-300 hover:text-white hover:bg-zinc-900/10 transition-all py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit]"
+                >
+                  <Pause className="size-4 fill-current" />
+                  Pause
+                </Button>
+              )}
+            </BorderGlow>
+
+            {/* End Day button wrapped in BorderGlow */}
+            <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+              <BorderGlow
+                className={`flex-1 transition-opacity ${elapsedTime <= 0 ? 'opacity-30 pointer-events-none' : ''}`}
+                edgeSensitivity={30}
+                glowColor="0 0 100"
+                backgroundColor="#060607"
+                borderRadius={12}
+                glowRadius={40}
+                glowIntensity={1}
+                coneSpread={25}
+                animated={false}
+                colors={['#ffffff', '#a1a1aa', '#3f3f46']}
+              >
+                <DialogTrigger asChild>
+                  <Button 
+                    disabled={elapsedTime <= 0}
+                    className="w-full bg-transparent text-zinc-400 hover:text-zinc-200 transition-all py-6 px-6 text-sm tracking-wider uppercase border-0 flex items-center justify-center gap-2 cursor-pointer rounded-[inherit] disabled:pointer-events-none"
+                  >
+                    <Square className="size-4" />
+                    End Day
+                  </Button>
+                </DialogTrigger>
+              </BorderGlow>
+
               <DialogContent className="border border-zinc-900 bg-[#060606] text-zinc-100 max-w-sm rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] p-6">
                 <DialogHeader className="gap-2">
                   <DialogTitle className="font-light text-xl tracking-tight text-white flex items-center gap-2">
