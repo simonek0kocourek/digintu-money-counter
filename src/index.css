@@ -83,3 +83,25 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #27272a;
 }
+
+/* Money Flow Particles Animation */
+@keyframes moneyFlow {
+  0% {
+    transform: translateY(100px) translateX(0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.25;
+  }
+  85% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateY(-100px) translateX(var(--flow-x, 15px)) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.animate-money-flow {
+  animation: moneyFlow var(--flow-duration, 3.5s) ease-in-out infinite;
+}

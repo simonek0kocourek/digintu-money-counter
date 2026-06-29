@@ -74,6 +74,7 @@ export default function App() {
   };
 
   const formattedTime = formatTime(elapsedTime);
+  const secondsRotation = (elapsedTime % 60000) * (360 / 60000);
 
   // Calculate current session earnings
   const currentEarnings = useMemo(() => {
@@ -254,8 +255,47 @@ export default function App() {
         <div className="flex flex-col items-center gap-8 w-full max-w-md">
           <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-full flex items-center justify-center border border-zinc-800 bg-[#060606] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
             
-            {/* Rotating border when active */}
-            <div className={`absolute inset-1 rounded-full border border-dashed border-zinc-700/50 pointer-events-none ${session.status === 'running' ? 'animate-[spin_40s_linear_infinite]' : ''}`} />
+            {/* Rotating border when active (pauses in place on pause) */}
+            <div 
+              className="absolute inset-1 rounded-full border border-dashed border-zinc-700/50 pointer-events-none animate-[spin_40s_linear_infinite]"
+              style={{
+                animationPlayState: session.status === 'running' ? 'running' : 'paused'
+              }}
+            />
+            
+            {/* Money flow particles container */}
+            <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none z-0">
+              {session.status === 'running' && (
+                <>
+                  <div className="absolute left-[25%] bottom-[30%] text-[8px] font-mono text-zinc-500/20 select-none animate-money-flow" style={{ '--flow-x': '-15px', '--flow-duration': '3.2s', 'animationDelay': '0.1s' } as React.CSSProperties}>Kč</div>
+                  <div className="absolute left-[75%] bottom-[25%] text-[9px] font-mono text-zinc-500/20 select-none animate-money-flow" style={{ '--flow-x': '12px', '--flow-duration': '4s', 'animationDelay': '0.8s' } as React.CSSProperties}>Kč</div>
+                  <div className="absolute left-[40%] bottom-[20%] text-[7px] font-mono text-zinc-500/25 select-none animate-money-flow" style={{ '--flow-x': '-8px', '--flow-duration': '2.8s', 'animationDelay': '1.5s' } as React.CSSProperties}>Kč</div>
+                  <div className="absolute left-[60%] bottom-[35%] text-[8px] font-mono text-zinc-500/20 select-none animate-money-flow" style={{ '--flow-x': '20px', '--flow-duration': '3.5s', 'animationDelay': '2.2s' } as React.CSSProperties}>Kč</div>
+                  
+                  {/* Floating micro-sparks/dots */}
+                  <div className="absolute left-[35%] bottom-[22%] size-1 bg-white/40 rounded-full animate-money-flow shadow-[0_0_4px_rgba(255,255,255,0.4)]" style={{ '--flow-x': '10px', '--flow-duration': '3.6s', 'animationDelay': '0.4s' } as React.CSSProperties} />
+                  <div className="absolute left-[65%] bottom-[28%] size-0.5 bg-white/30 rounded-full animate-money-flow" style={{ '--flow-x': '-12px', '--flow-duration': '4.2s', 'animationDelay': '1.2s' } as React.CSSProperties} />
+                  <div className="absolute left-[50%] bottom-[15%] size-1 bg-white/50 rounded-full animate-money-flow shadow-[0_0_6px_rgba(255,255,255,0.5)]" style={{ '--flow-x': '4px', '--flow-duration': '3s', 'animationDelay': '2.0s' } as React.CSSProperties} />
+                  <div className="absolute left-[45%] bottom-[32%] size-0.5 bg-white/30 rounded-full animate-money-flow" style={{ '--flow-x': '-6px', '--flow-duration': '3.8s', 'animationDelay': '2.6s' } as React.CSSProperties} />
+                </>
+              )}
+            </div>
+
+            {/* Sweeping mechanical second hand */}
+            {session.status !== 'idle' && (
+              <div 
+                className="absolute z-10 w-[1px] h-[38%] bg-white/45 origin-bottom transition-transform duration-75 pointer-events-none"
+                style={{
+                  bottom: '50%',
+                  left: '50%',
+                  transform: `translateX(-50%) rotate(${secondsRotation}deg)`,
+                }}
+              />
+            )}
+            {/* Center cap pin for watch hands */}
+            {session.status !== 'idle' && (
+              <div className="absolute z-20 size-2 bg-white rounded-full border border-zinc-950 shadow-md pointer-events-none" />
+            )}
             
             {/* Thin active glow ring */}
             <svg className="absolute inset-0 size-full -rotate-90 pointer-events-none">
